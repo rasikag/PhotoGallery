@@ -21,12 +21,17 @@ import java.util.ArrayList;
 public class FlickrFetchr {
 
     public static final String TAG = "FlickrFetchr";
+
+    public static final String PREF_SEARCH_QUERY = "searchQuery";
+
     private static final String ENDPOINT = "https://api.flickr.com/services/rest/";
     private static final String API_KEY = "3b018cef99bb261a56f5e5a1189a0107";
     private static final String METHOD_GET_RECENT = "flickr.photos.getRecent";
     private static final String PARAM_FORMAT = "rest";
     private static final String PARAM_EXTRAS = "extras";
     private static final String EXTRA_SMALL_URL = "url_s";
+    private static final String METHOD_SEARCH = "flickr.photos.search";
+    private static final String PARAM_TEXT = "text";
 
     private static final String XML_PHOTO = "photo";
 
@@ -51,14 +56,14 @@ public class FlickrFetchr {
         }
     }
 
-    public ArrayList<GalleryItem> fetchItems() {
+    public ArrayList<GalleryItem> downloadGalleryItems(String url) {
         ArrayList<GalleryItem> items = new ArrayList<GalleryItem>();
         try {
-            String url = Uri.parse(ENDPOINT).buildUpon()
-                    .appendQueryParameter("method", METHOD_GET_RECENT)
-                    .appendQueryParameter("api_key", API_KEY)
-                    .appendQueryParameter("format", PARAM_FORMAT)
-                    .appendQueryParameter(PARAM_EXTRAS, EXTRA_SMALL_URL).build().toString();
+            //String url = Uri.parse(ENDPOINT).buildUpon()
+            //        .appendQueryParameter("method", METHOD_GET_RECENT)
+            //       .appendQueryParameter("api_key", API_KEY)
+            //        .appendQueryParameter("format", PARAM_FORMAT)
+            //        .appendQueryParameter(PARAM_EXTRAS, EXTRA_SMALL_URL).build().toString();
             String XMLString = getUrl(url);
             Log.i(TAG, "Received xml: " + XMLString);
             XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
@@ -67,17 +72,39 @@ public class FlickrFetchr {
             parseItems(items, parser);
         } catch (IOException e) {
             Log.e(TAG, "Failed to fetch items", e);
-        }catch (XmlPullParserException ex){
+        } catch (XmlPullParserException ex) {
             Log.e(TAG, "Failed to parse items", ex);
         }
         return items;
+    }
+
+
+    public ArrayList<GalleryItem> fetchItems() {
+        String url = Uri.parse(ENDPOINT).buildUpon()
+                .appendQueryParameter("method", METHOD_GET_RECENT)
+                .appendQueryParameter("api_key", API_KEY)
+                .appendQueryParameter("format", PARAM_FORMAT)
+                .appendQueryParameter(PARAM_EXTRAS, EXTRA_SMALL_URL).build().toString();
+
+        return downloadGalleryItems(url);
+    }
+
+    public ArrayList<GalleryItem> search(String query) {
+        String url = Uri.parse(ENDPOINT).buildUpon()
+                .appendQueryParameter("method", METHOD_SEARCH)
+                .appendQueryParameter("api_key", API_KEY)
+                .appendQueryParameter("format", PARAM_FORMAT)
+                .appendQueryParameter(PARAM_TEXT, query)
+                .appendQueryParameter(PARAM_EXTRAS, EXTRA_SMALL_URL).build().toString();
+
+        return downloadGalleryItems(url);
     }
 
     public String getUrl(String urlSpec) throws IOException {
         return new String(getUrlBytes(urlSpec));
     }
 
-    void parseItems(ArrayList<GalleryItem> items,XmlPullParser parser) throws XmlPullParserException,IOException{
+    void parseItems(ArrayList<GalleryItem> items, XmlPullParser parser) throws XmlPullParserException, IOException {
 
         int eventType = parser.next();
         while (eventType != XmlPullParser.END_DOCUMENT) {
